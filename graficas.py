@@ -25,7 +25,7 @@ def graph(Z):
     axs.set_title("Diagrama de actividad")
     axs.grid(True, linestyle="--", alpha=0.5)
 
-def anigraph(Z):
+def anigraph(Z, name = "animacion"):
     n, K = Z.shape
     
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -57,4 +57,4 @@ def anigraph(Z):
         return [bar for row in bars for bar in row]
 
     ani = animation.FuncAnimation(fig, update, frames=K, interval=100, repeat=True)
-    ani.save("animacion.gif", writer=PillowWriter(fps=2))
+    ani.save(f"{name}.gif", writer=PillowWriter(fps=2))
