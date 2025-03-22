@@ -13,3 +13,16 @@ def coordstoindex(shape, coords):
     
     return (x * (Y*Z)) + (y*Z + z)
 
+def shapetocoords(shape):
+    l = []
+    
+    X, Y, Z = shape
+    n = X*Y*Z
+    
+    for i in range(n):
+        x = i // (Y*Z)
+        y = (i % (Y*Z))//Z
+        z = i % Z
+        l.append((x,y,z))
+    
+    return l
