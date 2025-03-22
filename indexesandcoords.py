@@ -12,3 +12,4 @@ def coordstoindex(shape, coords):
     x, y, z = coords
     
     return (x * (Y*Z)) + (y*Z + z)
+
