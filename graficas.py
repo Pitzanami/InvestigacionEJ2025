@@ -57,4 +57,4 @@ def anigraph(Z, name = "animacion"):
         return [bar for row in bars for bar in row]
 
     ani = animation.FuncAnimation(fig, update, frames=K, interval=100, repeat=True)
-    ani.save(f"{name}.gif", writer=PillowWriter(fps=2))
+    ani.save(f"gifs/{name}.gif", writer=PillowWriter(fps=2))
