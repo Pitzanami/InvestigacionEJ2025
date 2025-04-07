@@ -1,3 +1,6 @@
+import numpy as np
+import math
+
 def indextocoords(shape, index):
     _, Y, Z = shape
     
@@ -26,3 +29,20 @@ def shapetocoords(shape):
         l.append((x,y,z))
     
     return l
+
+def connProb(i, j, inh, shape):
+    C = 0.3
+    if i in inh and j in inh:
+        C = 0.1
+    if i in inh and j not in inh:
+        C = 0.4
+    if i not in inh and j in inh:
+        C = 0.2
+    
+    a = indextocoords(shape, i)
+    b = indextocoords(shape, j)
+    D = np.linalg.norm(a - b)
+    l = 2
+
+    return C * math.exp(- (D/l)**2)
+

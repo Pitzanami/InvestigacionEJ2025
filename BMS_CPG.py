@@ -29,3 +29,5 @@ class CPG:
             for i in range(self.N):
                 self.cambio(i, k)
         return self.Z
+    
+    
