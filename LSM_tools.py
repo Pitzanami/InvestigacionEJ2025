@@ -35,7 +35,7 @@ def shapeToCoords(shape):
     
     return l
 
-def connProb(i, j, inh, shape):
+def connProb(i, j, inh, shape, l):
     C = 0.3
     if i in inh and j in inh:
         C = 0.1
@@ -47,21 +47,20 @@ def connProb(i, j, inh, shape):
     a = indexToCoords(shape, i)
     b = indexToCoords(shape, j)
     D = distance.euclidean(a, b)
-    l = 2
 
     return C * math.exp(- (D/l)**2)
 
-def getConnMatrix(n, shape, perc = 0.2):
+def getConnMatrix(n, shape, l, perc = 0.2):
     inh = random.sample(range(n), int(n*perc))
     
-    C_mat = np.ones((n, n))
+    C_mat = np.zeros((n, n))
     
     for i in range(n):
         for j in range(n):
+            
             umb = random.uniform(0, 1)
-            C_mat[i][j] = 1 if connProb(i, j, inh, shape) < umb else 0
-            if i in inh:
-                C_mat[i][j] = C_mat[i][j] * -1
+            if umb < connProb(i, j, inh, shape, l):
+                C_mat[i, j] = -1 if i in inh else 1
     
     return C_mat
 
