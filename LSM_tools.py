@@ -2,6 +2,8 @@ import numpy as np
 from scipy.spatial import distance
 import math
 import random
+from pathlib import Path
+from pyNAVIS import Loaders, MainSettings, Functions
 
 def indexToCoords(shape, index):
     _, Y, Z = shape
@@ -60,4 +62,34 @@ def getConnMatrix(n, shape, l, perc = 0.2):
                 C_mat[i, j] = -1 if i in inh else 1
     
     return inh, C_mat
+
+def load_file(file_path: Path, settings: MainSettings):
+    
+    loaded_file  = Loaders.loadAEDAT(path=str(file_path), settings=settings)
+    adapted_file = Functions.adapt_timestamps(loaded_file, settings)
+    
+    return loaded_file
+
+def load_directory(data_folder: Path, settings: MainSettings, file_extension: str = ".aedat", verbose:bool=False):
+        
+    all_data = []
+    file_list = sorted(data_folder.glob(f"*{file_extension}"))
+    
+    for file_path in file_list:
+        
+        data = load_file(file_path, settings)
+        addresses = data.addresses
+        timestamps = data.timestamps
+        max_timestamps = np.max(timestamps) if timestamps.size > 0 else 0
+        
+        all_data.append({
+            "file_name": file_path.name,
+            "addresses": addresses,
+            "timestamps": timestamps,
+            "max_timestamps": max_timestamps
+        })
+        
+    print(f"Se cargaron {len(all_data)} archivos exitosamente desde {data_folder}")
+        
+    return all_data
 

@@ -23,8 +23,8 @@ def graph(Z):
     axs.set_xlabel("Tiempo")
     axs.set_ylabel("Objeto")
     axs.set_xlim(right = len(K))
-    axs.set_xticks(range(len(K)))
-    axs.set_yticks(range(n))
+    # axs.set_xticks(range(len(K)))
+    # axs.set_yticks(range(n))
     axs.set_title("Diagrama de actividad")
     axs.grid(True, linestyle="--", alpha=0.5)
 
