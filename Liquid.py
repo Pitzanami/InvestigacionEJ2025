@@ -7,21 +7,25 @@ import numpy as np
 
 class controller:
     def __init__(self, K:int, W, V_0, gamma = 0.5, i_ext = 0.1, theta = 1):
-        self.N = len(W)
+        self.N = len(W)             # Cantidad de neuronas en la red
         self.gamma = gamma
         self.i_ext = i_ext
         self.theta = theta
-        self.W = W
+        self.W = W                  # Matriz de pesos
         self.V_0 = V_0              # Estado inicial
-        self.K = K                  
+        self.K = K                  # Tiempos de simulacion
         self.V = np.concatenate((V_0, np.zeros((self.N, K))), axis = 1)  
         self.Z = self.V.copy()
         
         for i in range(self.N):
             self.Z[i][0] = 1 if self.V[i][0] >= theta else 0
         
-    def cambio(self, i, k):
-        acum = sum([self.W[i][j]*self.Z[j][k-1] for j in range(self.N)])
+    def cambio(self, i, k, input = []):
+        acum = 0
+        if len(input) != 0:
+            acum += sum([self.W[i][j+self.N]*input[j] for j in range(len(input))])
+
+        acum += sum([self.W[i][j]*self.Z[j][k-1] for j in range(self.N)])
 
         self.V[i][k] = self.gamma * self.V[i][k-1] * (1 - self.Z[i][k-1]) + self.i_ext + acum
         self.Z[i][k] = 1 if self.V[i][k] >= self.theta else 0 
@@ -35,8 +39,15 @@ class controller:
                 self.cambio(i, k)
         return self.Z
     
-    def simu(self, inputs):
-        for k in range(1, self.K):
+    # recibe función generadora tiempos que itera por cada uno de los tiempos del dato
+    def simu(self, gen_tiempos):
+        t = 0
+        for estado in gen_tiempos:
+            for i in range(self.N):
+                self.cambio(i, t, estado)
+            t += 1
+
+        for k in range(t, self.K):
             for i in range(self.N):
                 self.cambio(i, k)
         return self.Z
@@ -121,8 +132,12 @@ class Liquid:
         # Controller
         self.cpg = controller(self.t, self.WC, self.Z_0)
 
-    def simulacion(self, inputs):
-        self.sim = self.cpg.simu(inputs)
+    # recibe función generadora inputs que itera por todo el conjunto de datos 
+    # y para cada uno regresa una función generadora de los tiempos del dato
+    def simulacion(self, gen_inputs, n_entradas):
+        self.sim = []
+        for gen_dato in gen_inputs:
+            self.sim.append(self.cpg.simu(gen_dato))
         return self.sim
     
     def photo(self, factor:float):
