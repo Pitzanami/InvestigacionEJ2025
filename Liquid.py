@@ -35,6 +35,12 @@ class controller:
                 self.cambio(i, k)
         return self.Z
     
+    def simu(self, inputs):
+        for k in range(1, self.K):
+            for i in range(self.N):
+                self.cambio(i, k)
+        return self.Z
+    
 # ----------------------------------------------------------------------
 
 def indexToCoords(shape, index):
@@ -112,12 +118,11 @@ class Liquid:
         
         self.Z_0 = np.zeros((self.n_neurons, 1))
 
-        # CPG
-        self.cpg = CPG(self.t, self.WC, self.Z_0)
+        # Controller
+        self.cpg = controller(self.t, self.WC, self.Z_0)
 
-    def simulacion(self):
-        # provisional
-        self.sim = self.cpg.simulacion()
+    def simulacion(self, inputs):
+        self.sim = self.cpg.simu(inputs)
         return self.sim
     
     def photo(self, factor:float):
