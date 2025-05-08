@@ -2,9 +2,6 @@ import numpy as np
 from scipy.spatial import distance
 import math
 import random
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.lines import Line2D
 
 def indexToCoords(shape, index):
     _, Y, Z = shape
@@ -62,47 +59,5 @@ def getConnMatrix(n, shape, l, perc = 0.2):
             if umb < connProb(i, j, inh, shape, l):
                 C_mat[i, j] = -1 if i in inh else 1
     
-    return C_mat
+    return inh, C_mat
 
-def plotConnectivity(C, shape, show_arrows=False, show_labels=False):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    
-    n_nodes = C.shape[0]
-    coords = np.array([indexToCoords(shape, i) for i in range(n_nodes)])
-    
-    ax.scatter(coords[:, 0], coords[:, 1], coords[:, 2], color='black', s=20, label='Neuronas')
-    
-    color_map = {1: 'blue', -1: 'red'}
-
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            value = C[i, j]
-            if value in color_map:
-                start = coords[i]
-                end = coords[j]
-                if show_arrows:
-                    # Dibujar flecha
-                    direction = end - start
-                    ax.quiver(*start, *direction, length=1, normalize=False, color=color_map[value], arrow_length_ratio=0.1, alpha=0.2)
-                else:
-                    # Dibujar línea simple
-                    line = np.vstack([start, end])
-                    ax.plot(line[:, 0], line[:, 1], line[:, 2], color=color_map[value], alpha=0.2)
-    
-    legend_elements = [
-        Line2D([0], [0], color='blue', lw=2, label='Excitatoria'),
-        Line2D([0], [0], color='red', lw=2, label='Inhibitoria')
-        # Line2D([0], [0], color='green', lw=2, label='Sin conexión')
-    ]
-    ax.legend(handles=legend_elements, loc='upper left')
-
-    if show_labels:
-        for i, (x, y, z) in enumerate(coords):
-            ax.text(x, y, z, f'{i}', color='black', fontsize=8)
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    plt.tight_layout()
-    plt.show()
