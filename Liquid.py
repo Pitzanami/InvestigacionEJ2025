@@ -134,7 +134,7 @@ class Liquid:
 
     # recibe función generadora inputs que itera por todo el conjunto de datos 
     # y para cada uno regresa una función generadora de los tiempos del dato
-    def simulacion(self, gen_inputs, n_entradas):
+    def simulacion(self, gen_inputs):
         self.sim = []
         for gen_dato in gen_inputs:
             self.sim.append(self.cpg.simu(gen_dato))
