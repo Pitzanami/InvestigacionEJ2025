@@ -1,55 +1,82 @@
 import numpy as np
 from scipy.spatial import distance
-import math
-import random
+from math import exp
 
-import numpy as np
-
-class controller:
-    def __init__(self, K:int, W, V_0, gamma = 0.5, i_ext = 0.1, theta = 1):
+class Controller:
+    def __init__(self, t_factor, W, gamma = 0.5, i_ext = 0.1, theta = 1):
         self.N = len(W)             # Cantidad de neuronas en la red
         self.gamma = gamma
         self.i_ext = i_ext
         self.theta = theta
         self.W = W                  # Matriz de pesos
-        self.V_0 = V_0              # Estado inicial
-        self.K = K                  # Tiempos de simulacion
-        self.V = np.concatenate((V_0, np.zeros((self.N, K))), axis = 1)  
-        self.Z = self.V.copy()
+        # self.V_0 = V_0              # Estado inicial
+        self.t_factor = t_factor
         
+        
+        '''
         for i in range(self.N):
             self.Z[i][0] = 1 if self.V[i][0] >= theta else 0
+        '''
+    '''
+    version optimizada
+    def cambio(self, k: int, entrada: np.ndarray = None):
+        # recurrent input: W_rec x previous spikes
+        recur = self.W_recurrent.dot(self.Z[:, k-1])
+
+        # external input if provided
+        if entrada is not None and entrada.size > 0:
+            ext = self.W_input.dot(entrada)
+        else:
+            ext = 0
+
+        # membrane update
+        Vm_prev = self.V[:, k-1]
+        Z_prev = self.Z[:, k-1]
+        self.V[:, k] = self.gamma * Vm_prev * (1 - Z_prev) + self.i_ext + recur + ext
+
+        # spike generation
+        self.Z[:, k] = (self.V[:, k] >= self.theta).astype(int)
+
+    
+    '''
+    def reset(self, duracion):
+        self.K = int(duracion + self.t_factor*duracion)                  # Tiempos de simulacion
+        self.V = np.zeros((self.N, self.K+1))  
+        self.Z = np.zeros_like(self.V, dtype=int)
         
-    def cambio(self, i, k, input = []):
+    
+    def cambio(self, i, k, entrada = None):
+         #print(f"self.V.shape = {self.V.shape}")
+
         acum = 0
-        if len(input) != 0:
-            acum += sum([self.W[i][j+self.N]*input[j] for j in range(len(input))])
-
+        #reemplazar por if not entrada:
+        if len(entrada) != 0:
+            acum += sum([self.W[i][j+self.N]*entrada[j] for j in range(len(entrada))])
+        
         acum += sum([self.W[i][j]*self.Z[j][k-1] for j in range(self.N)])
+        # print(type(acum))
 
-        self.V[i][k] = self.gamma * self.V[i][k-1] * (1 - self.Z[i][k-1]) + self.i_ext + acum
+        self.V[i][k] = float(self.gamma * self.V[i][k-1] * (1 - self.Z[i][k-1]) + acum + self.i_ext)
         self.Z[i][k] = 1 if self.V[i][k] >= self.theta else 0 
-
-    def print_V(self):
-        print(self.V)
-
-    def simulacion(self):
-        for k in range(1, self.K):
-            for i in range(self.N):
-                self.cambio(i, k)
-        return self.Z
+    
     
     # recibe función generadora tiempos que itera por cada uno de los tiempos del dato
-    def simu(self, gen_tiempos):
+    def simu(self, gen_tiempos, duracion):
+        self.reset(duracion)
         t = 0
         for estado in gen_tiempos:
             for i in range(self.N):
                 self.cambio(i, t, estado)
             t += 1
+            if t%1000 == 0:
+                print(t)
 
         for k in range(t, self.K):
             for i in range(self.N):
                 self.cambio(i, k)
+            if t%1000 == 0:
+                print(t)
+
         return self.Z
     
 # ----------------------------------------------------------------------
@@ -96,17 +123,17 @@ def connProb(i, j, inh, shape, l):
     b = indexToCoords(shape, j)
     D = distance.euclidean(a, b)
 
-    return C * math.exp(- (D/l)**2)
+    return C * exp(- (D/l)**2)
 
 # CLASS LIQUID
 
 class Liquid:
-    def __init__(self, shape_liquid: tuple, n_channels:int, t:int, 
+    def __init__(self, shape_liquid: tuple, n_channels:int, t_factor:int, 
                  l:float=2.2, prob_IL:float=0.3, perc_inh:float = 0.2):
 
         # hiperparametros 
         self.l = l
-        self.t = t
+        self.t_factor = t_factor
         self.prob_IL = prob_IL
         self.perc_inh = perc_inh
         
@@ -117,31 +144,31 @@ class Liquid:
 
         self.n_channels = n_channels
         
-        self.input = self.__getInputLayer()
+        self.inputLayer = self.__getInputLayer()
 
         W_random = np.random.uniform(0, 1, (self.n_neurons, self.n_neurons+self.n_channels))
-        self.C_eq = np.hstack([self.C_eq, self.input])
+        self.C_eq = np.hstack([self.C_eq, self.inputLayer])
         
         self.WC = W_random * self.C_eq
 
         # W_random = np.random.uniform(0, 1, (self.n_neurons, self.n_neurons))
         # self.WC = W_random * self.C_eq
         
-        self.Z_0 = np.zeros((self.n_neurons, 1))
+        #self.Z_0 = np.zeros((self.n_neurons, 1))
 
         # Controller
-        self.cpg = controller(self.t, self.WC, self.Z_0)
+        self.cpg = Controller(self.t_factor, self.WC)
 
     # recibe función generadora inputs que itera por todo el conjunto de datos 
     # y para cada uno regresa una función generadora de los tiempos del dato
     def simulacion(self, gen_inputs):
         self.sim = []
-        for gen_dato in gen_inputs:
-            self.sim.append(self.cpg.simu(gen_dato))
+        for gen_dato, duracion in gen_inputs:
+            self.sim.append(self.cpg.simu(gen_dato, duracion))
         return self.sim
     
     def photo(self, factor:float):
-        n_frames = factor*self.t
+        n_frames = factor*self.t_factor
         
         sample = self.sim[-n_frames:]
         photo = []
