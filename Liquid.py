@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.spatial import distance
 from math import exp
+import os
 
 class Controller:
     def __init__(self, t_factor, W, gamma = 0.5, i_ext = 0.1, theta = 1):
@@ -46,11 +47,9 @@ class Controller:
         
     
     def cambio(self, i, k, entrada = None):
-         #print(f"self.V.shape = {self.V.shape}")
-
         acum = 0
         #reemplazar por if not entrada:
-        if len(entrada) != 0:
+        if entrada is not None and len(entrada) != 0:
             acum += sum([self.W[i][j+self.N]*entrada[j] for j in range(len(entrada))])
         
         acum += sum([self.W[i][j]*self.Z[j][k-1] for j in range(self.N)])
@@ -161,12 +160,27 @@ class Liquid:
 
     # recibe función generadora inputs que itera por todo el conjunto de datos 
     # y para cada uno regresa una función generadora de los tiempos del dato
+    
     def simulacion(self, gen_inputs):
+        self.sim = []
+
+        # Crear carpeta 'simulacion' si no existe
+        os.makedirs("Simulacion", exist_ok=True)
+
+        for idx, (gen_dato, duracion) in enumerate(gen_inputs):
+            matriz = self.cpg.simu(gen_dato, duracion)
+            self.sim.append(matriz)
+            nombre_archivo = os.path.join("Simulacion", f"sim_{idx}.txt")
+            np.savetxt(nombre_archivo, matriz, fmt="%.6f")  # Ajusta el formato si es necesario
+
+        return self.sim
+
+    '''def simulacion(self, gen_inputs):
         self.sim = []
         for gen_dato, duracion in gen_inputs:
             self.sim.append(self.cpg.simu(gen_dato, duracion))
         return self.sim
-    
+'''    
     def photo(self, factor:float):
         n_frames = factor*self.t_factor
         
