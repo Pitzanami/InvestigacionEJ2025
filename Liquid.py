@@ -13,33 +13,7 @@ class Controller:
         # self.V_0 = V_0              # Estado inicial
         self.t_factor = t_factor
         
-        
-        '''
-        for i in range(self.N):
-            self.Z[i][0] = 1 if self.V[i][0] >= theta else 0
-        '''
-    '''
-    version optimizada
-    def cambio(self, k: int, entrada: np.ndarray = None):
-        # recurrent input: W_rec x previous spikes
-        recur = self.W_recurrent.dot(self.Z[:, k-1])
-
-        # external input if provided
-        if entrada is not None and entrada.size > 0:
-            ext = self.W_input.dot(entrada)
-        else:
-            ext = 0
-
-        # membrane update
-        Vm_prev = self.V[:, k-1]
-        Z_prev = self.Z[:, k-1]
-        self.V[:, k] = self.gamma * Vm_prev * (1 - Z_prev) + self.i_ext + recur + ext
-
-        # spike generation
-        self.Z[:, k] = (self.V[:, k] >= self.theta).astype(int)
-
-    
-    '''
+       
     def reset(self, duracion):
         self.K = int(duracion + self.t_factor*duracion)                  # Tiempos de simulacion
         self.V = np.zeros((self.N, self.K+1))  
@@ -150,12 +124,6 @@ class Liquid:
         
         self.WC = W_random * self.C_eq
 
-        # W_random = np.random.uniform(0, 1, (self.n_neurons, self.n_neurons))
-        # self.WC = W_random * self.C_eq
-        
-        #self.Z_0 = np.zeros((self.n_neurons, 1))
-
-        # Controller
         self.cpg = Controller(self.t_factor, self.WC)
 
     # recibe función generadora inputs que itera por todo el conjunto de datos 
@@ -180,7 +148,7 @@ class Liquid:
         for gen_dato, duracion in gen_inputs:
             self.sim.append(self.cpg.simu(gen_dato, duracion))
         return self.sim
-'''    
+    '''    
     def photo(self, factor:float):
         n_frames = factor*self.t_factor
         

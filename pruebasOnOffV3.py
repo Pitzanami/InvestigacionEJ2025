@@ -4,9 +4,15 @@ from pathlib import Path
 from math import exp, sqrt
 from pyNAVIS import Loaders, MainSettings, Functions
 from os import makedirs, path
+import time
 
 # Numba imports
 from numba import njit, prange
+
+import io
+import sys
+from contextlib import redirect_stdout
+
 
 # CuPy import for GPU
 try:
@@ -22,8 +28,13 @@ except ImportError:
 
 # === File loading functions (unchanged) ===
 def load_file(file_path: Path, settings: MainSettings):
+    f = io.StringIO()
+    with redirect_stdout(f):
+        return Loaders.loadAEDAT(path=str(file_path), settings=settings)
+'''
+def load_file(file_path: Path, settings: MainSettings):
     return Loaders.loadAEDAT(path=str(file_path), settings=settings)
-
+'''
 def load_directory(data_folder: Path, settings: MainSettings, file_extension: str = ".aedat"):
     all_data = []
     for file_path in sorted(data_folder.glob(f"*{file_extension}")):
@@ -114,7 +125,7 @@ def run_sim_numba(K, N, Wconn, gamma, i_ext, theta, Vs, Zs):
         Z_prev = Zs[:, k-1]
         for i in prange(N):  # <- esta parte SÍ se puede paralelizar
             V_prev = Vs[i, k-1]
-            V, z = step_neuron(i, V_prev, Z_prev, Wconn[i], gamma, i_ext, theta)
+            V, z = step_neuron(i, V_prev, Z_prev, Wconn[i], N, gamma, i_ext, theta)
             Vs[i, k] = V
             Zs[i, k] = z
     return Vs, Zs
@@ -140,14 +151,14 @@ def getInputLayer(n_neurons, n_channels, exh, prob_IL):
     return mat
 
 # === Save results ===
-def save_simulation(Z, output_folder="Simulacion", filename="simulation.txt"):
+def save_simulation(Z, output_folder="Simulacion", filename="simulation.npz"):
     """
-    Guarda la matriz de spikes Z en un archivo de texto.
+    Guarda la matriz de spikes Z en un archivo comprimido .npz.
     """
     makedirs(output_folder, exist_ok=True)
     filepath = path.join(output_folder, filename)
-    np.savetxt(filepath, Z, fmt="%d")
-    print(f"Resultados guardados en: {filepath}")
+    np.savez_compressed(filepath, Z=Z)
+    print(f"Resultados comprimidos guardados en: {filepath}")
 
 # === Main entry example ===
 if __name__ == "__main__":
@@ -183,7 +194,7 @@ if __name__ == "__main__":
     Vs = np.zeros((n_neurons, K+1), dtype=np.float32)
     Zs = np.zeros((n_neurons, K+1), dtype=np.int8)
 
-    if GPU_AVAILABLE:
+    '''if GPU_AVAILABLE:
         try:
             print("Usando GPU para simulación...")
             Z_out = run_sim_cupy(K, n_neurons, Wconn, gamma, i_ext, theta)
@@ -193,6 +204,26 @@ if __name__ == "__main__":
     else:
         print("GPU no disponible, usando Numba CPU")
         Z_out = run_sim_numba(K, n_neurons, Wconn, gamma, i_ext, theta, Vs, Zs)[1]
+'''
+    if GPU_AVAILABLE:
+        try:
+            print("Usando GPU para simulación...")
+            start_time = time.time()
+            Z_out = run_sim_cupy(K, n_neurons, Wconn, gamma, i_ext, theta)
+            elapsed_time = time.time() - start_time
+            print(f"Simulación con GPU completada en {elapsed_time:.3f} segundos")
+        except Exception as e:
+            print("Error en GPU (fallando a CPU):", e)
+            start_time = time.time()
+            Z_out = run_sim_numba(K, n_neurons, Wconn, gamma, i_ext, theta, Vs, Zs)[1]
+            elapsed_time = time.time() - start_time
+            print(f"Simulación con CPU (por fallback) completada en {elapsed_time:.3f} segundos")
+    else:
+        print("GPU no disponible, usando Numba CPU")
+        start_time = time.time()
+        Z_out = run_sim_numba(K, n_neurons, Wconn, gamma, i_ext, theta, Vs, Zs)[1]
+        elapsed_time = time.time() - start_time
+        print(f"Simulación con CPU completada en {elapsed_time:.3f} segundos")
 
     print("Simulación completa, output shape:", Z_out.shape)
     save_simulation(Z_out)
